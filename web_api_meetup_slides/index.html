@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>API usage at Wer liefert was?</title>
+		<meta charset="utf-8">
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/solarized.css" id="theme">
+		<link rel="stylesheet" href="css/custom.css" id="theme">
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+	</head>
+
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h2>
+						Internal API usage at<br> Wer liefert was
+					</h2>
+				</section>
+
+				<section>
+					<h2>Wer liefert was</h2>
+					<ul>
+						<li>Established 1932</li>
+						<li>Suplier search engine</li>
+						<li>200 employees</li>
+						<li>20 web developers</li>
+						<li>20 SAP developers</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Moving to the web</h2>
+					<img src="img/ror.png" width="20%"/>
+					&nbsp;
+					<img src="img/sap.png" width="30%"/>
+				</section>
+
+				<section>
+					<h2>Breaking the Monolith</h2>
+					<ul>
+						<li>10+ Apps</li>
+						<li>REST APIs</li>
+						<li>AMQP messages</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Internal API from scratch</h2>
+					<p>API design guide from heroku</p>
+				</section>
+
+				<section>
+					<h2>Format</h2>
+					<p>JSON</p>
+				</section>
+
+				<section>
+					<h2>URL Namespace</h2>
+					<pre><code>*/internal_api/*</code></pre>
+				</section>
+
+				<section>
+					<h2>Versioning</h2>
+					<pre><code>Accept: application/json; version=2</code></pre>
+				</section>
+
+				<section>
+					<h2>Lists</h2>
+					<pre><code class="json" data-trim>
+{
+  "items": []
+}
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Pagination</h2>
+					<pre><code>Range: name; max=10, order=desc, offset=20;</code></pre>
+				</section>
+
+				<section>
+					<h2>Fields</h2>
+					<pre><code>Fields: id, name, description;</code></pre>
+					<p>=></p>
+					<pre><code class="json" data-trim>
+{
+  "id": 1234,
+  "name": "Wer liefert was",
+  "description": "Search like a pro"
+}
+				  </code></pre>
+				</section>
+
+				<section>
+					<h2>Error Format</h2>
+					<pre><code class="json" data-trim>
+{
+  "error_type": "image_not_found",
+  "message": "Image with the ID 123 could not be found."
+}
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Filters</h2>
+					<pre><code data-trim>
+						/internal_api/products?company_id=123&category_id=234
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Actions</h2>
+					<pre><code data-trim>
+						PUT /internal_api/product_images/123/actions/process
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Documentation</h2>
+					<ul>
+						<li>Confluence (wiki)</li>
+						<li>api.md</li>
+						<li>...</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Library Support</h2>
+					<pre><code class="ruby" data-trim>
+client = WlwApi::Client.create(:products)
+client.get('/products').body
+=>
+{
+  items: [{
+    id: 123,
+    name: 'Flux capacitor'
+  }]
+}
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Error handling</h2>
+					<pre><code class="ruby" data-trim>
+begin
+  client.get('/products/404')
+rescue WlwApi::Error::NotFoundError => error
+  error.error_type
+end
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>XML calls</h2>
+					<pre><code class="ruby" data-trim>
+client.raw_get('/sap/resource').body
+=> "<xml>...</xml>"
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Testing</h2>
+					<pre><code class="ruby" data-trim>
+WlwApi::Test::Helper.json_response(200, some: 'body')
+WlwApi::Test::Helper.api_exception(404, error_type: 'image_not_found')
+					</code></pre>
+				</section>
+
+        <section>
+          <h2>Thanks</h2>
+        </section>
+
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+		<script>
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: false,
+				transition: 'fade', // none/fade/slide/convex/concave/zoom
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>

@@ -28,32 +28,199 @@
 	</head>
 
 	<body>
-
 		<div class="reveal">
-
 			<div class="slides">
+
+				<section data-background="#ffffff">
+					<p>API Caching with Varnish at</p>
+					<img src="img/wlwlogo.jpg" alt="WLW Logo" width="333px"/>
+					<p>Ruby Usergroup Hamburg 14.10.2015</p>
+				</section>
+
 				<section>
-					<h1>...</h1>
+					<h2>WLW Infrastructure</h2>
+					<ul>
+						<li class="fragment">Microservice Architecture</li>
+						<li class="fragment">13 Applications/Services</li>
+						<li class="fragment">Communication over REST APIs and AMQP</li>
+						<li class="fragment">~3K internal API request per minute</li>
+						<li class="fragment">One App owns it's data, fetching on the fly</li>
+						<li class="fragment">Search/ES is a place where data is aggregated</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Local caching</h2>
+					<pre class="fragment"><code data-trim>
+class CompaniesController
+  TTL = 10.minutes.freeze
+
+  def show
+    Rails.cache.fetch('some_key', expires_in: TTL) do
+      ApiClient.get("companies/#{id}/categories")
+    end
+  end
+end
+			    </code></pre>
+				</section>
+
+				<section>
+					<h2>Local caching</h2>
+					<h3>Benefits</h3>
+					<ul>
+						<li class="fragment">No HTTP request overhead for cached calls</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Local caching</h2>
+					<h3>Drawbacks</h3>
+					<ul>
+						<li class="fragment">Each app implements it's own cache</li>
+						<li class="fragment">Cached data is duplicated in multiple caches</li>
+						<li class="fragment">Hard to invalidate all caches</li>
+						<li class="fragment">No monitoring e.g. on cache hit rates</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Proxy caching</h2>
+					<img class="fragment" src="img/cachemiss.png" alt="Cache Miss" />
+					<img class="fragment" src="img/cachehit.png" alt="Cache Hit" />
+				</section>
+
+				<section>
+					<h2>Why Varnish?</h2>
+					<ul>
+						<li class="fragment">Free software under BSD license</li>
+						<li class="fragment">Well documented, free books, good documentation</li>
+						<li class="fragment">Easy to introduce, few code changes are needed</li>
+						<li class="fragment">Good expierience at e.g. at XING or OTTO</li>
+					</ul>
+				</section>
+
+				<section>
+					<h1>Varnish Features</h1>
+				</section>
+
+				<section>
+					<h2>VCL</h2>
+					<ul>
+						<li class="fragment">DSL to configure request handling / caching policies</li>
+						<li class="fragment">Possible to change/control everything</li>
+						<li class="fragment">Good set of general rules</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>VCL Flow</h2>
+					<ul>
+						<li class="fragment">vcl_recv</li>
+						<li class="fragment">vcl_hash</li>
+						<li class="fragment">vcl_hit / vcl_miss</li>
+						<li class="fragment">vcl_fetch</li>
+						<li class="fragment">vcl_deliver</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Setting up a cache</h2>
+					<pre><code data-trim>
+class APIController
+  def show
+    expires_in 1.minute, 's-maxage': 10.minutes
+    header[:vary] = [:accept, :range]
+
+    render_json
+  end
+end
+					</code></pre>
+					<div class="fragment">
+						Server response Header
+						<pre><code data-trim>
+Cache-Control: max-age=60, s-maxage=600
+Vary: Accept, Range
+						</code></pre>
+					</div>
+				</section>
+
+				<section>
+					<h2>Cache Invalidation</h2>
+					<ul>
+						<li class="fragment">Via HTTP Request</li>
+						<li class="fragment">Ban list entry</li>
+						<li class="fragment">Purge Request</li>
+					</ul>
+					<pre class="fragment"><code data-trim>
+api_client.get('some/resource', headers: { purge: true })
+					</code></pre>
+				</section>
+
+				<section>
+					<h1>Learnings</h1>
+				</section>
+
+				<section>
+					<h2>Performance</h2>
+					<ul>
+						<li class="fragment">Improve from 50-60ms to ~7ms</li>
+						<li class="fragment">Biggest improvements with page caching</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Object expunging</h2>
+					<p>Provide Varnish with enough Memory</p>
+				</section>
+
+				<section>
+					<h2>Identify suitable calls</h2>
+					<ul>
+						<li class="fragment">Low diversity</li>
+						<li class="fragment">High request rate</li>
+						<li class="fragment">= Good hitrate</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Dedicated Varnish endpoint</h2>
+					<ul>
+						<li class="fragment">Custom port or subdomain</li>
+						<li class="fragment">Better monitoring</li>
+						<li class="fragment">Explicit usage from client</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Summing up</h2>
+					<p>
+						Varnish provides a convient option for our API toolbelt
+					</p>
+				</section>
+
+				<section>
+					<h2>Questions?</h2>
+				</section>
+
+				<section>
+					<h2>Thank you!</h2>
 				</section>
 
 			</div>
-
 		</div>
 
 		<script src="lib/js/head.min.js"></script>
-		<script src="js/reveal.js"></script>
-
+		<script src="js/reveal.js"></script>s
 		<script>
-
 			// Full list of configuration options available at:
 			// https://github.com/hakimel/reveal.js#configuration
 			Reveal.initialize({
-				controls: true,
+				controls: false,
 				progress: true,
 				history: true,
 				center: true,
 
-				transition: 'slide', // none/fade/slide/convex/concave/zoom
+				transition: 'none', // none/fade/slide/convex/concave/zoom
 
 				// Optional reveal.js plugins
 				dependencies: [
@@ -65,7 +232,6 @@
 					{ src: 'plugin/notes/notes.js', async: true }
 				]
 			});
-
 		</script>
 
 	</body>

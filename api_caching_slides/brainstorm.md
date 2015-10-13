@@ -48,3 +48,5 @@
  * better monitoring
  * slightly more implementation overhead
 * When building a new API call you have varnish in your toolset
+* Having fast APIs will has less impact than caching entire Pages
+ * ESI looks intersting for that

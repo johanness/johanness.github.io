@@ -36,6 +36,8 @@
 * Grace time
 * Cache invalidation: ban vs purge
 * Plugins for Munin/NewRelic, CLI tools
+* Code example API Server side
+* Code example VCL
 
 # Learnings
 * purging a lot of cache entries with bans
@@ -44,3 +46,4 @@
 * Try: Have a dedicated endpoint to varnish instead of sending the whole traffic through
  * better monitoring
  * slightly more implementation overhead
+* When building a new API call you have varnish in your toolset

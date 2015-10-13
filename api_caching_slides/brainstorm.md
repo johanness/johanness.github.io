@@ -27,6 +27,7 @@
 
 # Varnish features
 * Reasonable default values
+* Request aggregations when same request arrives multiple times
 * Cache key construction
 * Vary Header
 * VCL configuration, everything is possible, we tried to come up with a set of simple rules

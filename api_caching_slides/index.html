@@ -31,50 +31,48 @@
 		<div class="reveal">
 			<div class="slides">
 
-				<section data-background="#ffffff">
+				<section data-background="#ffffff" id="introduction">
 					<p>API Caching with Varnish at</p>
 					<img src="img/wlwlogo.jpg" alt="WLW Logo" width="333px"/>
 					<p>Ruby Usergroup Hamburg 14.10.2015</p>
 				</section>
 
-				<section>
+				<section id="infrasctructure">
 					<h2>WLW Infrastructure</h2>
 					<ul>
-						<li class="fragment">Microservice Architecture</li>
+						<li class="fragment">Microservices</li>
 						<li class="fragment">13 Applications/Services</li>
-						<li class="fragment">Communication over REST APIs and AMQP</li>
-						<li class="fragment">~3K internal API request per minute</li>
-						<li class="fragment">One App owns it's data, fetching on the fly</li>
-						<li class="fragment">Search/ES is a place where data is aggregated</li>
+						<li class="fragment">REST APIs and AMQP</li>
+						<li class="fragment">Each record is owned by one application</li>
+						<li class="fragment">Exception is Elasticsearch</li>
+						<li class="fragment">~3K internal API requests per minute</li>
 					</ul>
 				</section>
 
-				<section>
+				<section id="local-caching">
 					<h2>Local caching</h2>
-					<pre class="fragment"><code data-trim>
+					<pre ><code data-trim>
 class CompaniesController
   TTL = 10.minutes.freeze
 
   def show
-    Rails.cache.fetch('some_key', expires_in: TTL) do
-      ApiClient.get("companies/#{id}/categories")
+    @category = Rails.cache.fetch('some_key', expires_in: TTL) do
+      api_client.get("companies/#{id}/category")
     end
   end
 end
 			    </code></pre>
 				</section>
 
-				<section>
-					<h2>Local caching</h2>
-					<h3>Benefits</h3>
+				<section id="local-caching-benefits">
+					<h2>Local caching Benefits</h2>
 					<ul>
-						<li class="fragment">No HTTP request overhead for cached calls</li>
+						<li>No HTTP request overhead for cached calls</li>
 					</ul>
 				</section>
 
-				<section>
-					<h2>Local caching</h2>
-					<h3>Drawbacks</h3>
+				<section id="local-caching-drawbacks">
+					<h2>Local caching Drawbacks</h2>
 					<ul>
 						<li class="fragment">Each app implements it's own cache</li>
 						<li class="fragment">Cached data is duplicated in multiple caches</li>
@@ -83,27 +81,27 @@ end
 					</ul>
 				</section>
 
-				<section>
+				<section id="proxy-caching">
 					<h2>Proxy caching</h2>
 					<img class="fragment" src="img/cachemiss.png" alt="Cache Miss" />
 					<img class="fragment" src="img/cachehit.png" alt="Cache Hit" />
 				</section>
 
-				<section>
+				<section id="why">
 					<h2>Why Varnish?</h2>
 					<ul>
 						<li class="fragment">Free software under BSD license</li>
 						<li class="fragment">Well documented, free books, good documentation</li>
-						<li class="fragment">Easy to introduce, few code changes are needed</li>
-						<li class="fragment">Good expierience at e.g. at XING or OTTO</li>
+						<li class="fragment">Easy to introduce, few code changes</li>
+						<li class="fragment">Good experience at e.g. at XING or OTTO</li>
 					</ul>
 				</section>
 
-				<section>
+				<section id="varnish">
 					<h1>Varnish Features</h1>
 				</section>
 
-				<section>
+				<section id="vcl">
 					<h2>VCL</h2>
 					<ul>
 						<li class="fragment">DSL to configure request handling / caching policies</li>
@@ -112,24 +110,40 @@ end
 					</ul>
 				</section>
 
-				<section>
+				<section id="flow">
 					<h2>VCL Flow</h2>
 					<ul>
 						<li class="fragment">vcl_recv</li>
 						<li class="fragment">vcl_hash</li>
 						<li class="fragment">vcl_hit / vcl_miss</li>
-						<li class="fragment">vcl_fetch</li>
+						<li class="fragment">vcl_backend_fetch</li>
+						<li class="fragment">vcl_backend_response</li>
 						<li class="fragment">vcl_deliver</li>
 					</ul>
 				</section>
 
-				<section>
+				<section id="vcl-example">
+					<h2>Example routine</h2>
+					<pre><code data-trim>
+sub vcl_backend_response {
+
+  # Only cache json response
+  if (beresp.http.Content-Type !~ "application/json") {
+    set beresp.uncacheable = true;
+  }
+
+  return(deliver);
+}
+					</code></pre>
+				</section>
+
+				<section id="implementation">
 					<h2>Setting up a cache</h2>
 					<pre><code data-trim>
 class APIController
   def show
-    expires_in 1.minute, 's-maxage': 10.minutes
-    header[:vary] = [:accept, :range]
+    expires_in 1.minute, 'stale-while-revalidate': 10.minutes
+    header['Vary'] = ['Accept', 'Range']
 
     render_json
   end
@@ -138,13 +152,13 @@ end
 					<div class="fragment">
 						Server response Header
 						<pre><code data-trim>
-Cache-Control: max-age=60, s-maxage=600
+Cache-Control: max-age=60, stale-while-revalidate=600
 Vary: Accept, Range
 						</code></pre>
 					</div>
 				</section>
 
-				<section>
+				<section id="invalidation">
 					<h2>Cache Invalidation</h2>
 					<ul>
 						<li class="fragment">Via HTTP Request</li>
@@ -152,28 +166,28 @@ Vary: Accept, Range
 						<li class="fragment">Purge Request</li>
 					</ul>
 					<pre class="fragment"><code data-trim>
-api_client.get('some/resource', headers: { purge: true })
+api_client.get('/resource', headers: { 'Cache-Control': 'Purge' })
 					</code></pre>
 				</section>
 
-				<section>
+				<section id="learnings">
 					<h1>Learnings</h1>
 				</section>
 
-				<section>
+				<section id="performance">
 					<h2>Performance</h2>
 					<ul>
-						<li class="fragment">Improve from 50-60ms to ~7ms</li>
-						<li class="fragment">Biggest improvements with page caching</li>
+						<li class="fragment">Improvement from 50-60ms to ~7ms</li>
+						<li class="fragment">Biggest improvement potencial with page caching</li>
 					</ul>
 				</section>
 
-				<section>
+				<section id="expunging">
 					<h2>Object expunging</h2>
 					<p>Provide Varnish with enough Memory</p>
 				</section>
 
-				<section>
+				<section id="findingcall">
 					<h2>Identify suitable calls</h2>
 					<ul>
 						<li class="fragment">Low diversity</li>
@@ -182,7 +196,7 @@ api_client.get('some/resource', headers: { purge: true })
 					</ul>
 				</section>
 
-				<section>
+				<section id="dedicated-endpoint">
 					<h2>Dedicated Varnish endpoint</h2>
 					<ul>
 						<li class="fragment">Custom port or subdomain</li>
@@ -191,18 +205,16 @@ api_client.get('some/resource', headers: { purge: true })
 					</ul>
 				</section>
 
-				<section>
+				<section id="summing-up">
 					<h2>Summing up</h2>
-					<p>
-						Varnish provides a convient option for our API toolbelt
-					</p>
+					<p>Varnish provides a convenient option for our API toolbelt</p>
 				</section>
 
-				<section>
+				<section id="questions">
 					<h2>Questions?</h2>
 				</section>
 
-				<section>
+				<section id="end">
 					<h2>Thank you!</h2>
 				</section>
 

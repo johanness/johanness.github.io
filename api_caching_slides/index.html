@@ -78,6 +78,7 @@ end
 						<li class="fragment">Cached data is duplicated in multiple caches</li>
 						<li class="fragment">Hard to invalidate all caches</li>
 						<li class="fragment">No monitoring e.g. on cache hit rates</li>
+						<li class="fragment">Only simple time based caching</li>
 					</ul>
 				</section>
 
@@ -122,6 +123,11 @@ end
 					</ul>
 				</section>
 
+				<section id="flow-chart">
+					<h2>VCL Flow Chart</h2>
+					<img src="img/varnishflow.png" alt="Varnish flow chart" height="500px"/>
+				</section>
+
 				<section id="vcl-example">
 					<h2>Example routine</h2>
 					<pre><code data-trim>
@@ -141,7 +147,7 @@ sub vcl_backend_response {
 					<h2>Setting up a cache</h2>
 					<pre><code data-trim>
 class APIController
-  def show
+  def index
     expires_in 1.minute, 'stale-while-revalidate': 10.minutes
     header['Vary'] = ['Accept', 'Range']
 
@@ -162,12 +168,21 @@ Vary: Accept, Range
 					<h2>Cache Invalidation</h2>
 					<ul>
 						<li class="fragment">Via HTTP Request</li>
-						<li class="fragment">Ban list entry</li>
 						<li class="fragment">Purge Request</li>
+						<li class="fragment">Ban list entry</li>
 					</ul>
 					<pre class="fragment"><code data-trim>
 api_client.get('/resource', headers: { 'Cache-Control': 'Purge' })
 					</code></pre>
+				</section>
+
+				<section>
+					<h2>Other features</h2>
+					<ul>
+						<li class="fragment">Call aggregation</li>
+						<li class="fragment">Console tools</li>
+						<li class="fragment">Plugins for Munin, NewRelic, Nagios, etc.</li>
+					</ul>
 				</section>
 
 				<section id="learnings">

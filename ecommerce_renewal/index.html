@@ -8,10 +8,12 @@
 
 		<link rel="stylesheet" href="css/reset.css">
 		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/sky.css">
+		<link rel="stylesheet" href="css/theme/white.css">
 
 		<!-- Theme used for syntax highlighting of code -->
 		<link rel="stylesheet" href="lib/css/monokai.css">
+
+    <link rel="stylesheet" href="css/custom.css">
 
 		<!-- Printing and PDF exports -->
 		<script>
@@ -30,21 +32,23 @@
 				</section>
 
 				<section>
-					<img src="./img/hv-logo.svg" alt="Hanse Ventures Logo">
-					<h2>🤝</h2>
-					<img src="./img/awn-logo.png" alt="AWN Logo">
+					<img id="hv-logo" src="./img/hv-logo.svg" alt="Hanse Ventures Logo">
+					<h1>🤝</h1>
+					<img id="awn-logo" src="./img/awn-logo.png" alt="AWN Logo">
 				</section>
 
 				<section>
-					<h2>Legacy Landscape</h2>
-					<img src="./img/magento-logo.png" alt="Magento Logo">
-					<img src="./img/openerp-logo.png" alt="OpenERP Logo">
-					<img src="./img/access-logo.png" alt="MS Access Logo">
+          <h2>Legacy Landscape</h2>
+          <br>
+          <img id="openerp-logo" src="./img/openerp-logo.png" alt="OpenERP Logo">
+					<img id="magento-logo" src="./img/magento-logo.png" alt="Magento Logo">
+          <br>
+					<img id="access-logo" src="./img/access-logo.png" alt="MS Access Logo">
 				</section>
 
 				<section>
 					<h2>Masterplan</h2>
-					<img src="./img/architecture.png" alt="Architecture Plan">
+					<img id="architecture" src="./img/architecture.png" alt="Architecture Plan">
 				</section>
 
 				<section>
@@ -62,14 +66,9 @@
 				</section>
 
 				<section>
-					<h2>Shopify</h2>
-					<img src="./img/shopify-structure.png" alt="Shopify data structure">
-				</section>
-
-				<section>
 					<h2>SKU relation</h2>
 					<img src="./img/sku-relation.png" alt="Relation of SKU between products">
-					<pre><code class="hljs ruby" style="word-wrap: break-word;">module Services
+					<pre class="fragment"><code class="hljs ruby" style="word-wrap: break-word;">module Services
   module Shopify
     class ProductServiceBase < ServiceBase
       def find_by(id: nil, handle: nil)

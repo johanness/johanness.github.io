@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/sky.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/monokai.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h1>Ecommerce renewal</h1>
+				</section>
+
+				<section>
+					<img src="./img/hv-logo.svg" alt="Hanse Ventures Logo">
+					<h2>🤝</h2>
+					<img src="./img/awn-logo.png" alt="AWN Logo">
+				</section>
+
+				<section>
+					<h2>Legacy Landscape</h2>
+					<img src="./img/magento-logo.png" alt="Magento Logo">
+					<img src="./img/openerp-logo.png" alt="OpenERP Logo">
+					<img src="./img/access-logo.png" alt="MS Access Logo">
+				</section>
+
+				<section>
+					<h2>Masterplan</h2>
+					<img src="./img/architecture.png" alt="Architecture Plan">
+				</section>
+
+				<section>
+					<h2>Data structures</h2>
+				</section>
+
+				<section>
+					<h2>Akeneo</h2>
+					<img src="./img/akeneo-structure.png" alt="Akeneo data structure">
+				</section>
+
+				<section>
+					<h2>Shopify</h2>
+					<img src="./img/shopify-structure.png" alt="Shopify data structure">
+				</section>
+
+				<section>
+					<h2>Shopify</h2>
+					<img src="./img/shopify-structure.png" alt="Shopify data structure">
+				</section>
+
+				<section>
+					<h2>SKU relation</h2>
+					<img src="./img/sku-relation.png" alt="Relation of SKU between products">
+					<pre><code class="hljs ruby" style="word-wrap: break-word;">module Services
+  module Shopify
+    class ProductServiceBase < ServiceBase
+      def find_by(id: nil, handle: nil)
+        raise 'You can either find a product by id or by handle' if id.nil? && handle.nil?
+
+        product_id = id || find_id_for(handle: handle)
+        ShopifyAPI::Product.find(product_id)
+      end
+
+      def find_id_for(handle:)
+        response = product_request(handle)
+        raise "Product request failed with: #{response}" unless response.success?
+
+        extract_id_from_product_response(response.parsed_response)
+      end
+
+      def product_request(handle)
+        query = product_query_for_handle(handle)
+
+        @graphql_service.query(query)
+      end
+
+      def product_query_for_handle(handle)
+        "query {
+          productByHandle(handle: \"#{handle.downcase}\") {
+            id
+          }
+        }"
+      end</code></pre>
+				</section>
+
+				<section>
+					<h2>Price filter</h2>
+					<pre><code class="hljs ruby" style="word-wrap: break-word;">module Mappers
+  class ErpProductTagMapper
+    PRICE_THRESHOLDS = %w[
+      10 25 50 75
+      100 200 300 400 500 600 700 800 900
+      1000 1500 2000 2500 3000 3500 4000 4500 5000 7500
+      10000
+    ].freeze
+
+    def self.to_shopify_tags(prices:)
+      prices.inject([]) do |tags, price|
+        tags | lower_bound_tags_for_price(price) | upper_bound_tags_for_price(price)
+      end
+    end
+
+    def self.lower_bound_tags_for_price(price)
+      lower_bound_tags = price_thresholds.select { |threshold| price.to_f >= threshold.to_f }
+      lower_bound_tags.map { |tag| "price:gte#{tag}" }
+    end</code></pre>
+				</section>
+
+				<section>
+					<h2>Shipping costs</h2>
+					<pre><code class="hljs ruby" style="word-wrap: break-word;">module Mappers
+  class ErpProductMapper
+    WEIGHT_MAP = {
+      '0,0001' => 1,
+      '1' => 10,
+      '100' => 10_000,
+      '1000' => 80_000,
+      '10000' => 640_000,
+      '45000' => 5_120_000,
+      '100000' => 40_960_000
+    }.freeze
+
+    def self.map_weight(erp_data)
+      WEIGHT_MAP[erp_data['weight']] || raise("unmapped weight #{erp_data['weight']}")
+    end
+
+    def self.map_weight_unit(_erp_data)
+      'g'
+    end</code></pre>
+				</section>
+
+        <section>
+          <h2>Taxes</h2>
+          <pre><code class="hljs ruby" style="word-wrap: break-word;">module Handlers
+  class ErpTaxCategoryHandler < Handlers::HandlerBase
+    def handle(product_data:)
+      product_handle = @akeneo_service.extract_product_handle(product_data)
+      return if product_handle.nil?
+
+      tax_collection_handle = extract_tax_collection_handle(product_data)
+
+      response = @shopify_service.add_product_to_collection(tax_collection_handle, product_handle)
+      return unless response.nil?
+
+      return if @shopify_service.collection_exists?(tax_collection_handle)
+
+      raise "missing collection '#{tax_collection_handle}', please create it manually"
+    end
+
+    private
+
+    def extract_tax_collection_handle(erp_data)
+      "tax-#{erp_data['tax'].tr(',', '-')}"
+    end
+  end
+end</code></pre>
+        </section>
+
+        <section>
+          <h2>Logging</h2>
+          <pre><code class="hljs ruby" style="word-wrap: break-word;">require 'semantic_logger'
+SemanticLogger.add_appender(io: STDOUT, formatter: :json)
+
+class ServiceBase
+  include SemanticLogger::Loggable
+end
+
+logger.info(handle: product_handle)</code></pre>
+        </section>
+
+        <section>
+          <h2>Metafields</h2>
+          <ul>
+            <li>Files</li>
+            <li>Associations</li>
+            <li>Basic price</li>
+            <li>Store availability</li>
+            <li>Hreflang</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Shopify theme development</h2>
+          <ul>
+            <li><a href="https://shopify.github.io/slate/docs/about">Slate</a></li>
+            <li><a href="https://shopify.github.io/themekit/#installation">Theme Kit</a></li>
+          </ul>
+        </section>
+
+				<section>
+          <h1>Thanks for listening!</h1>
+          <div>Questions?</div>
+				</section>
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				hash: true,
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/highlight/highlight.js' },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>

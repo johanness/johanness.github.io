@@ -197,10 +197,36 @@ logger.info(handle: product_handle)</code></pre>
         </section>
 
         <section>
+          <h2>Akeneo gem</h2>
+          <a href="https://github.com/awniemeyer/akeneo">github.com/awniemeyer/akeneo</a>
+          <pre><code class="hljs ruby" style="word-wrap: break-word;">module Akeneo
+  class ProductService < ServiceBase
+    def brothers_and_sisters(id)
+      akeneo_product = find(id)
+      akeneo_parent = load_akeneo_parent(akeneo_product['parent'])
+      akeneo_grand_parent = load_akeneo_parent(akeneo_parent['parent']) unless akeneo_parent.nil?
+
+      parents = load_parents(akeneo_product['family'], akeneo_parent, akeneo_grand_parent)
+
+      load_products(akeneo_product, akeneo_product['family'], parents)
+    end
+          </code></pre>
+        </section>
+
+        <section>
           <h2>Shopify theme development</h2>
           <ul>
             <li><a href="https://shopify.github.io/slate/docs/about">Slate</a></li>
             <li><a href="https://shopify.github.io/themekit/#installation">Theme Kit</a></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Cool Features</h2>
+          <ul>
+            <li>Seperate product and stock sync</li>
+            <li>I18n</li>
+            <li>Broke tight coupling</li>
           </ul>
         </section>
 
